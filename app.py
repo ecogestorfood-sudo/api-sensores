@@ -1,30 +1,27 @@
-from flask import Flask, request
+from flask import Flask, jsonify
 import psycopg2
 import os
 
 app = Flask(__name__)
 
-conn = psycopg2.connect(
-    dbname=os.environ['PGDATABASE'],
-    user=os.environ['PGUSER'],
-    password=os.environ['PGPASSWORD'],
-    host=os.environ['PGHOST'],
-    port=os.environ.get('PGPORT', 5432),
-    sslmode='require'
-)
+# Conexión a Neon usando el string completo
+def get_db_connection():
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    return conn
 
 @app.route('/')
 def home():
-    return 'API Flask lista ✅'
+    return "✅ API de sensores funcionando correctamente"
 
-@app.route('/sensor', methods=['POST'])
-def recibir_dato():
-    data = request.get_json()
+@app.route('/sensores')
+def sensores():
+    conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO sensores (sensor_id, valor, unidad) VALUES (%s, %s, %s)",
-        (data['sensor_id'], data['valor'], data['unidad'])
-    )
-    conn.commit()
+    cur.execute('SELECT * FROM sensores ORDER BY timestamp DESC LIMIT 10;')
+    rows = cur.fetchall()
     cur.close()
-    return {'status': 'ok'}
+    conn.close()
+    return jsonify(rows)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
