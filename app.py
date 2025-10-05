@@ -1,19 +1,29 @@
 from flask import Flask, request, jsonify
 import psycopg2
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 
-# Conexión a la base de datos con DATABASE_URL
-conn = psycopg2.connect(os.environ['DATABASE_URL'])
+# 🔐 Conexión a la base de datos con variables separadas
+conn = psycopg2.connect(
+    host=os.environ['PGHOST'],
+    database=os.environ['PGDATABASE'],
+    user=os.environ['PGUSER'],
+    password=os.environ['PGPASSWORD'],
+    port=os.environ['PGPORT']
+)
 
+# ✅ Ruta de prueba para saber si funciona
 @app.route('/')
 def home():
     return '<p>✅ API de sensores funcionando correctamente</p>'
 
+# 📥 Ruta para recibir datos del ESP32
 @app.route('/sensores', methods=['POST'])
 def recibir_datos():
     data = request.get_json()
+
     sensor_id = data.get('sensor_id')
     valor = data.get('valor')
     unidad = data.get('unidad')
@@ -28,6 +38,7 @@ def recibir_datos():
 
     return jsonify({"mensaje": "Datos guardados correctamente"}), 201
 
+# 📤 Ruta para ver los datos almacenados
 @app.route('/sensores', methods=['GET'])
 def ver_datos():
     cur = conn.cursor()
@@ -40,7 +51,7 @@ def ver_datos():
         datos.append({
             "id": row[0],
             "sensor_id": row[1],
-            "valor": float(row[2]),
+            "valor": row[2],
             "unidad": row[3],
             "timestamp": row[4].strftime("%Y-%m-%d %H:%M:%S")
         })
